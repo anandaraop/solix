@@ -1,0 +1,18 @@
+---
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: scdp-ui-configmap
+data:
+  env-config.js: |
+    window._env_ = {
+        "REACT_APP_AUTH_SERVICE" : "https://appcdp.solixcorp.com:9091/gateway-service",
+        "REACT_APP_MODULE_SERVICE" : "https://appcdp.solixcorp.com:9091/gateway-service",
+        "REACT_APP_NODE_ENV" : "local",
+        "REACT_APP_SSO_URL" : "https://appcdp.solixcorp.com:9443/sso-service/saml2/authenticate/",
+        "REACT_APP_CHECK_TOKEN_URL" : "https://scdpclient:scdpclient",
+        "REACT_APP_CDP_CLIENT_ID" : "scdpclient",
+        "REACT_APP_CDP_CLIENT_SECRET" : "scdpclient",
+        "REACT_APP_CDP_PAS_PROXY" : "https://appcdp.solixcorp.com:9091/gateway-service/pas-proxy",
+        "REACT_APP_CDP_SECRET_KEY": "SolixSCDPSecured"
+    };

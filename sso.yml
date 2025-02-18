@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sso
+spec:
+  selector:
+    matchLabels:
+      app: sso
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: sso
+    spec:
+      hostNetwork: true
+      containers:
+      - name: sso
+        image: solixdevops3/solixcdp3-sso:v3.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9443
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "keytool -import -alias solixssl -keystore /usr/local/openjdk-11/lib/security/cacerts -file /scdpdata/ssl/solix.crt -trustcacerts -storepass changeit -noprompt; cp /scdpdata/kerberos/krb5.conf /etc/krb5.conf; cp /scdpdata/kerberos/resolv.conf /etc/resolv.conf; cp /scdpdata/kerberos/hosts /etc/hosts"]
+        env:
+        - name: JAVA_OPTS
+          value: "-Djava.awt.headless=true -Dfile.encoding=UTF-8 -Djdk.tls.client.protocols=TLSv1.2 -server -Xms256m -Xmx4g -Duser.timezone=GMT -Doracle.jdbc.timezoneAsRegion=false"
+        envFrom:
+          - configMapRef:
+              name: scdp-configmap
+        # resources:
+          # limits:
+            # memory: 256Mi
+            # cpu: 125m
+          # requests:
+            # cpu: 70m
+            # memory: 64Mi
+        volumeMounts:                 # indicates which Volume (from spec.template.spec.volumes) should be used
+          - name: nfs-volume
+            mountPath: /scdpdata
+      volumes:
+        - name: nfs-volume
+          nfs:
+            server: appcdp.solixcorp.com
+            path: /data/nfsshareddrive
+      imagePullSecrets:
+      - name: solixdevops3

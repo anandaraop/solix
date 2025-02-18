@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saparchivingservice
+spec:
+  selector:
+    matchLabels:
+      app: saparchivingservice
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: saparchivingservice
+    spec:
+      hostNetwork: true
+      containers:
+      - name: saparchivingservice
+        image: solixdevops3/solixcdp3-saparchivingservice-1:v3.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8096
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "keytool -import -alias solixssl -keystore /opt/java/openjdk/lib/security/cacerts -file /scdpdata/ssl/solix.crt -trustcacerts -storepass changeit -noprompt; cp /scdpdata/kerberos/krb5.conf /etc/krb5.conf; cp /scdpdata/kerberos/resolv.conf /etc/resolv.conf; cp /scdpdata/kerberos/hosts /etc/hosts"]
+        env:
+        - name: JAVA_OPTS
+          value: "-Djava.awt.headless=true -Dfile.encoding=UTF-8 -Djdk.tls.client.protocols=TLSv1.2 -server -Xms1g -Xmx32g -XX:NewSize=128m -XX:MaxNewSize=256m -XX:PermSize=128m -XX:MaxPermSize=256m   -Xss10m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1ReservePercent=20 -XX:InitiatingHeapOccupancyPercent=30 -XX:ParallelGCThreads=30 -XX:MaxJavaStackTraceDepth=5000 -XX:MinHeapFreeRatio=30 -XX:MaxHeapFreeRatio=60 -Duser.timezone=GMT -Doracle.jdbc.timezoneAsRegion=false"
+        - name: CATALINA_OPTS
+          value: "-Djava.awt.headless=true -Dfile.encoding=UTF-8 -Djdk.tls.client.protocols=TLSv1.2 -server -Xms1g -Xmx32g -XX:NewSize=128m -XX:MaxNewSize=256m -XX:PermSize=128m -XX:MaxPermSize=256m   -Xss10m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1ReservePercent=20 -XX:InitiatingHeapOccupancyPercent=30 -XX:ParallelGCThreads=30 -XX:MaxJavaStackTraceDepth=5000 -XX:MinHeapFreeRatio=30 -XX:MaxHeapFreeRatio=60 -Duser.timezone=GMT -Doracle.jdbc.timezoneAsRegion=false"
+        envFrom:
+          - configMapRef:
+              name: scdp-configmap
+        # resources:
+          # limits:
+            # memory: 2048Mi
+            # cpu: 350m
+          # requests:
+            # cpu: 100m
+            # memory: 2048Mi
+        volumeMounts:                 # indicates which Volume (from spec.template.spec.volumes) should be used
+          - name: nfs-volume
+            mountPath: /scdpdata
+          - name: conf
+            mountPath: /usr/local/tomcat/conf/server.xml
+            subPath: sap-server.xml
+      volumes:
+        - name: nfs-volume
+          nfs:
+            server: appcdp.solixcorp.com
+            path: /data/nfsshareddrive
+        - name: conf
+          configMap:
+            name: sap-configmap
+      imagePullSecrets:
+      - name: solixdevops3
